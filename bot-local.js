@@ -54,8 +54,26 @@ function createBot() {
     console.log('💀 Бот умер');
   });
 
-  bot.on('kicked', (reason) => {
-    console.log('🚫 Бот кикнут:', reason);
+  bot.on('kicked', (reason, wasForced) => {
+    // Обработка разных форматов причины кика
+    let reasonText = '';
+    if (typeof reason === 'string') {
+      reasonText = reason;
+    } else if (reason && typeof reason === 'object') {
+      // Обработка compound-сообщения
+      if (reason.text) {
+        reasonText = reason.text.value || '';
+      } else if (reason.extra) {
+        // Собираем текст из extra
+        if (Array.isArray(reason.extra.value)) {
+          reasonText = reason.extra.value.map(item => 
+            item.text ? (typeof item.text === 'string' ? item.text : '') : ''
+          ).join('');
+        }
+      }
+    }
+    
+    console.log('🚫 Бот кикнут:', reasonText || JSON.stringify(reason));
     scheduleReconnect();
   });
 
@@ -96,7 +114,7 @@ function scheduleReconnect() {
       bot = null;
     }
     createBot();
-  }, 10000);
+  }, 60000); // 60 секунд - Aternos требует больше времени между подключениями
 }
 
 // Функция для выполнения действий бота

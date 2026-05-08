@@ -7,7 +7,7 @@
     "start": "node bot.js"
   },
   "dependencies": {
-    "mineflayer": "^4.15.0"
+    "mineflayer": "^4.37.1"
   },
   "engines": {
     "node": ">=16.0.0"

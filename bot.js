@@ -22,6 +22,7 @@ const DEBUG_ACTIONS = false; // false - убрать вывод действий
 // Функция создания и подключения бота
 function createBot() {
   console.log(`Попытка подключения к серверу ${botConfig.host}:${botConfig.port}...`);
+  console.log(`👤 Имя бота: ${botConfig.username}`);
   
   bot = mineflayer.createBot({
     host: botConfig.host,
@@ -56,8 +57,26 @@ function createBot() {
     console.log('💀 Бот умер');
   });
 
-  bot.on('kicked', (reason) => {
-    console.log('🚫 Бот был кикнут:', reason);
+  bot.on('kicked', (reason, wasForced) => {
+    // Обработка разных форматов причины кика
+    let reasonText = '';
+    if (typeof reason === 'string') {
+      reasonText = reason;
+    } else if (reason && typeof reason === 'object') {
+      // Обработка compound-сообщения
+      if (reason.text) {
+        reasonText = reason.text.value || '';
+      } else if (reason.extra) {
+        // Собираем текст из extra
+        if (Array.isArray(reason.extra.value)) {
+          reasonText = reason.extra.value.map(item => 
+            item.text ? (typeof item.text === 'string' ? item.text : '') : ''
+          ).join('');
+        }
+      }
+    }
+    
+    console.log('🚫 Бот был кикнут:', reasonText || JSON.stringify(reason));
     scheduleReconnect();
   });
 
@@ -104,7 +123,7 @@ function scheduleReconnect() {
       bot = null;
     }
     createBot();
-  }, 10000); // 10 секунд
+  }, 60000); // 60 секунд - Aternos требует больше времени между подключениями
 }
 
 // Функция для выполнения действий бота
@@ -264,3 +283,22 @@ console.log('  • Отладка действий: измените DEBUG_ACTIO
 
 // Начальное подключение
 createBot();
+  // Обработка всех сообщений (включая сложные)
+  bot.on('message', (json, type) => {
+    if (DEBUG_ACTIONS) {
+      console.log(`Сообщение (type: ${type}):`, json);
+    }
+  });
+
+  // Обработка чата
+  bot.on('chat', (username, message) => {
+    if (username === bot.username) return;
+    console.log(`💬 ${username}: ${message}`);
+    
+    // Автоответ на приветствия
+    if (message.toLowerCase().includes('привет') || message.toLowerCase().includes('hello')) {
+      setTimeout(() => {
+        bot.chat(`Привет, ${username}!`);
+      }, 1000);
+    }
+  });
